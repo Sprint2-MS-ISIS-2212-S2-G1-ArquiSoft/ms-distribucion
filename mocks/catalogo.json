@@ -1,0 +1,31 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/productos/:id",
+    "casos": [
+      {
+        "cuando": { "campo": "param.id", "igual": "123e4567-e89b-12d3-a456-426614174000" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174000",
+          "nombre": "Seguro de Vida Base",
+          "ramo": "VIDA",
+          "sumaAseguradaMaxima": "5000000.00"
+        }
+      },
+      {
+        "status": 404,
+        "cuerpo": {
+          "message": "Producto de seguro con id {{param.id}} no encontrado",
+          "error": "Not Found",
+          "statusCode": 404
+        }
+      }
+    ]
+  }
+]

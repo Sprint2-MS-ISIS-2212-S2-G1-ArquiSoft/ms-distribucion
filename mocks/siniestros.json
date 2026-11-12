@@ -1,0 +1,43 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/siniestros/poliza/:numeroPoliza",
+    "casos": [
+      {
+        "cuando": { "campo": "param.numeroPoliza", "igual": "POL-001" },
+        "status": 200,
+        "cuerpo": [
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174050",
+            "descripcionEvento": "Daño por accidente vehicular",
+            "montoReclamado": "2500000.00",
+            "estado": "REPORTADO",
+            "polizaId": "123e4567-e89b-12d3-a456-426614174040",
+            "numeroPoliza": "POL-001"
+          },
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174051",
+            "descripcionEvento": "Daño en parabrisas",
+            "montoReclamado": "850000.00",
+            "estado": "EN_ANALISIS",
+            "polizaId": "123e4567-e89b-12d3-a456-426614174040",
+            "numeroPoliza": "POL-001"
+          }
+        ]
+      },
+      {
+        "status": 404,
+        "cuerpo": {
+          "message": "No se encontraron siniestros para la póliza {{param.numeroPoliza}}",
+          "error": "Not Found",
+          "statusCode": 404
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/suscripciones",
+    "casos": [
+      {
+        "cuando": { "campo": "header.x-socio-id", "existe": false },
+        "status": 400,
+        "cuerpo": {
+          "message": "Header X-Socio-Id requerido",
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      },
+      {
+        "cuando": { "campo": "body.documento", "empiezaPor": "000" },
+        "status": 402,
+        "cuerpo": {
+          "message": "El pago fue rechazado",
+          "error": "Payment Required",
+          "statusCode": 402
+        }
+      },
+      {
+        "status": 201,
+        "cuerpo": {
+          "suscripcionId": "123e4567-e89b-12d3-a456-426614174030",
+          "estado": "ACEPTADA",
+          "puntajeRiesgo": 80,
+          "polizaId": "123e4567-e89b-12d3-a456-426614174040",
+          "numeroPoliza": "POL-00000001",
+          "estadoPoliza": "ACTIVA",
+          "fechaInicioVigencia": "2026-11-11T00:00:00.000Z",
+          "fechaFinVigencia": "2027-11-11T00:00:00.000Z",
+          "cotizacionId": "{{body.cotizacionId}}",
+          "clienteId": "{{body.clienteId}}"
+        }
+      }
+    ]
+  }
+]

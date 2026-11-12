@@ -1,0 +1,17 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/eventos",
+    "casos": [
+      {
+        "status": 201,
+        "cuerpo": { "id": "123e4567-e89b-12d3-a456-426614174060" }
+      }
+    ]
+  }
+]

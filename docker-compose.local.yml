@@ -1,0 +1,130 @@
+# Solo para desarrollo local. El despliegue real (docker-compose por nodo EC2)
+# vive en el repositorio paraguas.
+#
+# Levanta Distribucion, su Redis y un mock por cada uno de los seis vecinos a
+# los que llama. Los seis mocks corren el MISMO servidor generico
+# (mocks/server.js) y se diferencian solo por su JSON de rutas.
+services:
+  distribucion:
+    build: .
+    container_name: distribucion
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DISTRIBUCION_NAME: distribucion
+      REDIS_URL: redis://redis:6379
+      # Vault no esta integrado todavia: es del ASR de seguridad.
+      VAULT_ADDR: http://vault:8200
+      IDENTIDAD_URL: http://identidad-mock:3000
+      SUSCRIPCIONES_URL: http://suscripciones-mock:3000
+      SINIESTROS_URL: http://siniestros-mock:3000
+      CATALOGO_URL: http://catalogo-mock:3000
+      COTIZACION_URL: http://cotizacion-mock:3000
+      AUDITORIA_URL: http://auditoria-mock:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      identidad-mock:
+        condition: service_started
+      suscripciones-mock:
+        condition: service_started
+      siniestros-mock:
+        condition: service_started
+      catalogo-mock:
+        condition: service_started
+      cotizacion-mock:
+        condition: service_started
+      auditoria-mock:
+        condition: service_started
+
+  # Unico almacen de Distribucion: cuotas y scopes por socio (no hay RDS).
+  redis:
+    image: redis:7-alpine
+    container_name: distribucion-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Contrato REAL de ms-catalogo (ver su README).
+  catalogo-mock:
+    image: node:20-alpine
+    container_name: distribucion-catalogo-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: catalogo
+      MOCK_CONFIG: /app/mocks/catalogo.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]
+
+  # Contrato REAL de ms-identidad (ver su README). Pararlo
+  # (docker compose stop identidad-mock) sirve para probar el 503.
+  identidad-mock:
+    image: node:20-alpine
+    container_name: distribucion-identidad-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: identidad
+      MOCK_CONFIG: /app/mocks/identidad.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]
+
+  # Contrato REAL de ms-cotizacion (ver su README). Sus logs muestran los
+  # PATCH de estado: ACEPTADA en el flujo feliz y RECHAZADA en la compensacion.
+  cotizacion-mock:
+    image: node:20-alpine
+    container_name: distribucion-cotizacion-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: cotizacion
+      MOCK_CONFIG: /app/mocks/cotizacion.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]
+
+  # Contrato PENDIENTE (ver README). Responde 402 cuando el documento empieza
+  # por 000, que es como se fuerza la compensacion.
+  suscripciones-mock:
+    image: node:20-alpine
+    container_name: distribucion-suscripciones-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: suscripciones
+      MOCK_CONFIG: /app/mocks/suscripciones.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]
+
+  # Contrato PENDIENTE (ver README).
+  siniestros-mock:
+    image: node:20-alpine
+    container_name: distribucion-siniestros-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: siniestros
+      MOCK_CONFIG: /app/mocks/siniestros.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]
+
+  # Contrato PENDIENTE (ver README). Todavia nadie lo llama: el registro de
+  # rechazos es del ASR de seguridad.
+  auditoria-mock:
+    image: node:20-alpine
+    container_name: distribucion-auditoria-mock
+    restart: unless-stopped
+    environment:
+      MOCK_NAME: auditoria
+      MOCK_CONFIG: /app/mocks/auditoria.json
+    volumes:
+      - ./mocks:/app/mocks:ro
+    command: ["node", "/app/mocks/server.js"]

@@ -1,0 +1,134 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/cotizaciones",
+    "casos": [
+      {
+        "cuando": { "campo": "header.x-socio-id", "existe": false },
+        "status": 400,
+        "cuerpo": {
+          "message": "Header X-Socio-Id requerido",
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      },
+      {
+        "cuando": { "campo": "body.clienteId", "igual": "123e4567-e89b-12d3-a456-426614174011" },
+        "status": 201,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174021",
+          "estado": "PENDIENTE",
+          "primaMensual": "85000.00",
+          "sumaAsegurada": "5750000.00",
+          "fechaEmision": "2026-11-11T00:00:00.000Z",
+          "fechaVencimiento": "2026-11-26T00:00:00.000Z",
+          "socioDistribucionId": "{{header.x-socio-id}}",
+          "productoId": "{{body.productoId}}",
+          "suscripcionId": null,
+          "clienteId": "{{body.clienteId}}"
+        }
+      },
+      {
+        "status": 201,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174020",
+          "estado": "PENDIENTE",
+          "primaMensual": "85000.00",
+          "sumaAsegurada": "5750000.00",
+          "fechaEmision": "2026-11-11T00:00:00.000Z",
+          "fechaVencimiento": "2026-11-26T00:00:00.000Z",
+          "socioDistribucionId": "{{header.x-socio-id}}",
+          "productoId": "{{body.productoId}}",
+          "suscripcionId": null,
+          "clienteId": "{{body.clienteId}}"
+        }
+      }
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/cotizaciones/:id/validacion",
+    "casos": [
+      {
+        "cuando": { "campo": "param.id", "igual": "123e4567-e89b-12d3-a456-426614174020" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174020",
+          "estado": "PENDIENTE",
+          "primaMensual": "85000.00",
+          "sumaAsegurada": "5750000.00",
+          "fechaEmision": "2026-11-11T00:00:00.000Z",
+          "fechaVencimiento": "2026-11-26T00:00:00.000Z",
+          "socioDistribucionId": "123e4567-e89b-12d3-a456-426614174001",
+          "productoId": "123e4567-e89b-12d3-a456-426614174000",
+          "suscripcionId": null,
+          "clienteId": "123e4567-e89b-12d3-a456-426614174010"
+        }
+      },
+      {
+        "cuando": { "campo": "param.id", "igual": "123e4567-e89b-12d3-a456-426614174021" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174021",
+          "estado": "PENDIENTE",
+          "primaMensual": "85000.00",
+          "sumaAsegurada": "5750000.00",
+          "fechaEmision": "2026-11-11T00:00:00.000Z",
+          "fechaVencimiento": "2026-11-26T00:00:00.000Z",
+          "socioDistribucionId": "123e4567-e89b-12d3-a456-426614174001",
+          "productoId": "123e4567-e89b-12d3-a456-426614174000",
+          "suscripcionId": null,
+          "clienteId": "123e4567-e89b-12d3-a456-426614174011"
+        }
+      },
+      {
+        "status": 400,
+        "cuerpo": {
+          "message": "Cotización inválida o expirada",
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      }
+    ]
+  },
+  {
+    "metodo": "PATCH",
+    "ruta": "/cotizaciones/:id/estado",
+    "casos": [
+      {
+        "status": 200,
+        "cuerpo": {
+          "id": "{{param.id}}",
+          "estado": "{{body.estado}}",
+          "primaMensual": "85000.00",
+          "sumaAsegurada": "5750000.00",
+          "fechaEmision": "2026-11-11T00:00:00.000Z",
+          "fechaVencimiento": "2026-11-26T00:00:00.000Z",
+          "socioDistribucionId": "123e4567-e89b-12d3-a456-426614174001",
+          "productoId": "123e4567-e89b-12d3-a456-426614174000",
+          "suscripcionId": null,
+          "clienteId": "123e4567-e89b-12d3-a456-426614174010"
+        }
+      }
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/cotizaciones/:id",
+    "casos": [
+      {
+        "status": 404,
+        "cuerpo": {
+          "message": "Cotizacion con id {{param.id}} no encontrada",
+          "error": "Not Found",
+          "statusCode": 404
+        }
+      }
+    ]
+  }
+]

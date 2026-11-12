@@ -1,0 +1,71 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "casos": [{ "status": 200, "cuerpo": { "status": "ok" } }]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/clientes/verificacion",
+    "casos": [
+      {
+        "cuando": { "campo": "body.documento", "empiezaPor": "000" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174011",
+          "nombre": "{{body.nombre}}",
+          "documento": "{{body.documento}}"
+        }
+      },
+      {
+        "cuando": { "campo": "body.documento", "empiezaPor": "999" },
+        "status": 400,
+        "cuerpo": {
+          "message": "Fallo en la verificación KYC",
+          "error": "Bad Request",
+          "statusCode": 400
+        }
+      },
+      {
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174010",
+          "nombre": "{{body.nombre}}",
+          "documento": "{{body.documento}}"
+        }
+      }
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/clientes/:id",
+    "casos": [
+      {
+        "cuando": { "campo": "param.id", "igual": "123e4567-e89b-12d3-a456-426614174010" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174010",
+          "nombre": "Ana Gomez",
+          "documento": "1020304050"
+        }
+      },
+      {
+        "cuando": { "campo": "param.id", "igual": "123e4567-e89b-12d3-a456-426614174011" },
+        "status": 200,
+        "cuerpo": {
+          "id": "123e4567-e89b-12d3-a456-426614174011",
+          "nombre": "Moroso Perez",
+          "documento": "0001112223"
+        }
+      },
+      {
+        "status": 404,
+        "cuerpo": {
+          "message": "Cliente con id {{param.id}} no encontrado",
+          "error": "Not Found",
+          "statusCode": 404
+        }
+      }
+    ]
+  }
+]
