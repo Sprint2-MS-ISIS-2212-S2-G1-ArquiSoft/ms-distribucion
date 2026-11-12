@@ -1,6 +1,24 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { TOKEN_BUCKET_LUA } from '../rate-limiter/token-bucket.lua';
+
+/** Resultado de consumir un token del bucket de un socio. */
+export interface ResultadoBucket {
+  permitido: boolean;
+  tokensRestantes: number;
+  /** Tasa aplicada (tokens/s): la propia del socio o la de entorno. */
+  tps: number;
+}
+
+type RedisConBucket = Redis & {
+  tokenBucket(
+    claveBucket: string,
+    claveCuota: string,
+    tps: number,
+    rafaga: number,
+  ): Promise<[number, string, string]>;
+};
 
 /**
  * Conexion a Redis, el unico almacen de Distribucion: segun el ADR este
@@ -12,7 +30,7 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private readonly cliente: Redis;
+  private readonly cliente: RedisConBucket;
 
   constructor(private readonly config: ConfigService) {
     const url = this.config.get<string>('REDIS_URL', 'redis://localhost:6379');
@@ -20,6 +38,15 @@ export class RedisService implements OnModuleDestroy {
       // Sin reintentos infinitos al arrancar: si Redis no esta, /health lo dice.
       maxRetriesPerRequest: 2,
       lazyConnect: false,
+      // Tope de espera por comando: si Redis se cae, la peticion no se queda
+      // colgada; el rate limiter y la cache degradan (ver sus comentarios).
+      commandTimeout: Number(
+        this.config.get<string>('REDIS_TIMEOUT_MS', '500'),
+      ),
+    }) as RedisConBucket;
+    this.cliente.defineCommand('tokenBucket', {
+      numberOfKeys: 2,
+      lua: TOKEN_BUCKET_LUA,
     });
     this.cliente.on('error', (error) =>
       this.logger.error(`Error de conexion a Redis: ${String(error)}`),
@@ -38,6 +65,34 @@ export class RedisService implements OnModuleDestroy {
   async setIfAbsent(clave: string, valor: string): Promise<boolean> {
     const resultado = await this.cliente.set(clave, valor, 'NX');
     return resultado === 'OK';
+  }
+
+  /** SET ... EX: escribe con expiracion (cache-aside con TTL corto). */
+  async setConTtl(clave: string, valor: string, segundos: number): Promise<void> {
+    await this.cliente.set(clave, valor, 'EX', segundos);
+  }
+
+  /**
+   * Consume un token del bucket del socio con el script Lua atomico.
+   * tps/rafaga son los de entorno; si existe el hash cuota:<socioId> con
+   * campos tps/rafaga, el script usa esos (cuota propia del socio).
+   */
+  async consumirToken(
+    socioId: string,
+    tps: number,
+    rafaga: number,
+  ): Promise<ResultadoBucket> {
+    const [permitido, tokens, tasa] = await this.cliente.tokenBucket(
+      `ratelimit:${socioId}`,
+      `cuota:${socioId}`,
+      tps,
+      rafaga,
+    );
+    return {
+      permitido: permitido === 1,
+      tokensRestantes: Number(tokens),
+      tps: Number(tasa),
+    };
   }
 
   async onModuleDestroy(): Promise<void> {

@@ -88,6 +88,7 @@ Errores comunes a las tres rutas:
 |---|---|
 | `401` | `{ "message": "Socio no identificado", "error": "Unauthorized", "statusCode": 401 }` — falta `X-Socio-Id` |
 | `403` | `{ "message": "Socio no autorizado", "error": "Forbidden", "statusCode": 403 }` — el socio no está en Redis |
+| `429` | `{ "message": "Cuota de solicitudes excedida para el socio", "statusCode": 429 }` — el socio superó su cuota (ver *ASR de escalabilidad*). Trae `Retry-After` |
 | `503` | `{ "message": "<Servicio> no disponible", ... }` — un vecino no respondió (timeout de 5 s, conexión rechazada o `5xx`) |
 
 Los `4xx` de los vecinos **se propagan con su status y su mensaje**: Distribución es un orquestador y el socio tiene que ver el error real del servicio dueño del dato. Eso mantiene separados el `400` de Identidad ("este documento no pasó la verificación") y su `503` ("no pudimos verificar"), que su README pide explícitamente no colapsar.
@@ -294,11 +295,69 @@ El monolito **no tiene** ningún módulo, servicio, interceptor ni tabla de audi
 - **La consulta de Open Data** (paso 4 de `cotizar`): ahora la hace `ms-cotizacion`.
 - **La caché de siniestros** (Redis, TTL 60 s): táctica del ASR de Siniestros.
 
+## ASR de escalabilidad · aislamiento de carga por socio (Ivonne)
+
+Tácticas implementadas en este servicio. Cada una se apaga con una variable,
+así la corrida **sin tácticas** del experimento usa la misma imagen:
+
+| Táctica | Dónde | Apagar |
+|---|---|---|
+| Rate limit por socio: token bucket en Redis, `429` en el borde | `src/rate-limiter/` | `RATE_LIMIT_ENABLED=false` |
+| Caché cache-aside de `POST /clientes/verificacion` de Identidad (TTL corto) | `src/cache-clientes/` | `CACHE_ENABLED=false` |
+| Réplicas stateless detrás del ALB (`asg-distribucion`) | todo el estado vive en Redis | — |
+
+**Rate limiter.** Cada socio tiene su propio bucket en Redis: `RATE_LIMIT_TPS`
+tokens por segundo (10 por defecto) con ráfaga de `RATE_LIMIT_BURST` (20).
+- **Por qué en Redis:** si el bucket estuviera en la memoria de cada réplica, con
+  N réplicas el socio tendría N veces su cuota.
+- **Por qué con un script Lua:** leer, recalcular y escribir el saldo es una sola
+  operación atómica, y el reloj es el de Redis.
+- **Cuota propia de un socio,** sin reiniciar: `HSET cuota:<socioId> tps 50 rafaga 100`.
+
+El exceso recibe:
+
+```
+429 { "message": "Cuota de solicitudes excedida para el socio", "statusCode": 429 }
+Retry-After: <s>   X-RateLimit-Limit: <tps>   X-RateLimit-Remaining: <tokens>
+```
+
+Si Redis no responde, `RATE_LIMIT_FAIL_OPEN=true` deja pasar (prioriza
+disponibilidad) y `false` responde `503`.
+
+**Caché de clientes.**
+- **Por qué se puede cachear:** la verificación es un get-or-create por documento,
+  así que el mismo documento siempre da el mismo cliente.
+- **Clave y TTL:** la clave es el SHA-256 del documento y el TTL es `CACHE_TTL_S`
+  (60 s por defecto).
+- **Qué no se guarda:** los `400` de KYC ni los `503`.
+- **Si Redis no responde:** se llama directo a Identidad.
+
+En el diseño del equipo el socio se valida contra Redis (`socio:<id>`), no contra
+Identidad. Por eso la llamada a Identidad que se cachea es la verificación del
+cliente, que ocurre en cada cotización.
+
+**Socios de carga.** `socios.seed.json` trae, además de Banco Aliado, 50 socios
+`Socio Carga 01…50` con ids `00000000-0000-4000-8000-0000000000NN` para JMeter.
+
+### `GET /metricas`
+
+Contadores acumulados de la réplica que responde:
+- `cacheHits`, `cacheMisses` y `cacheHitRatio`;
+- `aceptadasPorSocio`, `rechazos429PorSocio` y sus totales;
+- `cacheErrores` y `rateLimitErrores`.
+
+Además, cada `METRICAS_INTERVALO_S` segundos cada réplica escribe en el log una
+línea JSON con `"metrica":"distribucion"` con los contadores de esa ventana. Sirve
+para sumar entre réplicas:
+
+```bash
+docker logs <contenedor> | grep '"metrica":"distribucion"'
+```
+
 ## Tácticas de ASR que no se migraron
 
 El andamio no trae lógica de ASRs. Están **deliberadamente ausentes**:
 
-- **rate limiting real por socio** — `src/rate-limiter/rate-limiter.guard.ts` siempre deja pasar (`TODO: ASR de rate limiting por socio, Ivonne`). Las cuotas irán en Redis y el rechazo será un `429`;
 - **validación de scopes por socio y registro de los rechazos en Auditoría** — `src/validador-socio/validador-socio.guard.ts` solo comprueba que el socio exista (`TODO: ASR de seguridad, Martín`);
 - **mTLS** — lo termina el gateway Nginx, que es el que inyecta `X-Socio-Id`;
 - **lectura de secretos de Vault** — solo queda `VAULT_ADDR` declarado en `.env.example`;

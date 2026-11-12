@@ -3,5 +3,255 @@
     "id": "123e4567-e89b-12d3-a456-426614174001",
     "nombreEmpresa": "Banco Aliado",
     "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "nombreEmpresa": "Socio Carga 01",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "nombreEmpresa": "Socio Carga 02",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "nombreEmpresa": "Socio Carga 03",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "nombreEmpresa": "Socio Carga 04",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000005",
+    "nombreEmpresa": "Socio Carga 05",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000006",
+    "nombreEmpresa": "Socio Carga 06",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000007",
+    "nombreEmpresa": "Socio Carga 07",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000008",
+    "nombreEmpresa": "Socio Carga 08",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000009",
+    "nombreEmpresa": "Socio Carga 09",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000010",
+    "nombreEmpresa": "Socio Carga 10",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000011",
+    "nombreEmpresa": "Socio Carga 11",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000012",
+    "nombreEmpresa": "Socio Carga 12",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000013",
+    "nombreEmpresa": "Socio Carga 13",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000014",
+    "nombreEmpresa": "Socio Carga 14",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000015",
+    "nombreEmpresa": "Socio Carga 15",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000016",
+    "nombreEmpresa": "Socio Carga 16",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000017",
+    "nombreEmpresa": "Socio Carga 17",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000018",
+    "nombreEmpresa": "Socio Carga 18",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000019",
+    "nombreEmpresa": "Socio Carga 19",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000020",
+    "nombreEmpresa": "Socio Carga 20",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000021",
+    "nombreEmpresa": "Socio Carga 21",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000022",
+    "nombreEmpresa": "Socio Carga 22",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000023",
+    "nombreEmpresa": "Socio Carga 23",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000024",
+    "nombreEmpresa": "Socio Carga 24",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000025",
+    "nombreEmpresa": "Socio Carga 25",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000026",
+    "nombreEmpresa": "Socio Carga 26",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000027",
+    "nombreEmpresa": "Socio Carga 27",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000028",
+    "nombreEmpresa": "Socio Carga 28",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000029",
+    "nombreEmpresa": "Socio Carga 29",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000030",
+    "nombreEmpresa": "Socio Carga 30",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000031",
+    "nombreEmpresa": "Socio Carga 31",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000032",
+    "nombreEmpresa": "Socio Carga 32",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000033",
+    "nombreEmpresa": "Socio Carga 33",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000034",
+    "nombreEmpresa": "Socio Carga 34",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000035",
+    "nombreEmpresa": "Socio Carga 35",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000036",
+    "nombreEmpresa": "Socio Carga 36",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000037",
+    "nombreEmpresa": "Socio Carga 37",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000038",
+    "nombreEmpresa": "Socio Carga 38",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000039",
+    "nombreEmpresa": "Socio Carga 39",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000040",
+    "nombreEmpresa": "Socio Carga 40",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000041",
+    "nombreEmpresa": "Socio Carga 41",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000042",
+    "nombreEmpresa": "Socio Carga 42",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000043",
+    "nombreEmpresa": "Socio Carga 43",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000044",
+    "nombreEmpresa": "Socio Carga 44",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000045",
+    "nombreEmpresa": "Socio Carga 45",
+    "sectorIndustria": "FINANCIERO"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000046",
+    "nombreEmpresa": "Socio Carga 46",
+    "sectorIndustria": "AEROLINEA"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000047",
+    "nombreEmpresa": "Socio Carga 47",
+    "sectorIndustria": "ECOMMERCE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000048",
+    "nombreEmpresa": "Socio Carga 48",
+    "sectorIndustria": "FINTECH"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000049",
+    "nombreEmpresa": "Socio Carga 49",
+    "sectorIndustria": "RETAIL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000050",
+    "nombreEmpresa": "Socio Carga 50",
+    "sectorIndustria": "FINANCIERO"
   }
 ]

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { CacheClientesService } from '../cache-clientes/cache-clientes.service';
 import { CatalogoClient } from '../clients/catalogo.client';
 import { Cotizacion, CotizacionClient } from '../clients/cotizacion.client';
 import { IdentidadClient } from '../clients/identidad.client';
@@ -28,6 +29,7 @@ export class ApiSociosService {
     private readonly cotizacionClient: CotizacionClient,
     private readonly suscripcionesClient: SuscripcionesClient,
     private readonly siniestrosClient: SiniestrosClient,
+    private readonly cacheClientes: CacheClientesService,
   ) {}
 
   /**
@@ -41,8 +43,9 @@ export class ApiSociosService {
       socioId,
     );
 
-    // 2. Cliente, en Identidad (get-or-create por documento, con KYC dentro).
-    const cliente = await this.identidadClient.verificarCliente(
+    // 2. Cliente, en Identidad (get-or-create por documento, con KYC dentro),
+    //    detras de la cache cache-aside del ASR de escalabilidad.
+    const cliente = await this.cacheClientes.verificarCliente(
       dto.nombre,
       dto.documento,
       socioId,
