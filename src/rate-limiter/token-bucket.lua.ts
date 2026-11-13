@@ -1,18 +1,3 @@
-/**
- * Token bucket por socio, atomico dentro de Redis.
- *
- *   KEYS[1] = ratelimit:<socioId>  estado del bucket (tokens, ts)
- *   KEYS[2] = cuota:<socioId>      cuota propia opcional (hash tps, rafaga)
- *   ARGV[1] = tps por defecto      ARGV[2] = rafaga por defecto
- *   -> { permitido (1|0), tokensRestantes, tpsAplicado }
- *
- * Es en Redis y no en memoria pq hay varias replicas de Distribucion detras
- * del ALB (asg-distribucion 2..4). Un bucket por replica le daria al socio N
- * veces su cuota. Por que Lua: leer, recalcular y escribir tiene que ser una
- * sola operacion, si no dos replicas leen el mismo saldo y las dos lo gastan.
- * Usa el reloj de Redis (TIME) para que todas las replicas compartan la misma
- * referencia de tiempo aunque sus relojes difieran.
- */
 export const TOKEN_BUCKET_LUA = `
 local rate = tonumber(ARGV[1])
 local burst = tonumber(ARGV[2])
