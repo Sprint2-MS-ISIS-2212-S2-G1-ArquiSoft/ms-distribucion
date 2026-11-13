@@ -32,7 +32,7 @@ import { SuscribirDto } from './dtos/suscribir.dto';
 export class ApiSociosController {
   constructor(private readonly apiSociosService: ApiSociosService) {}
 
-  /** POST /distribucion/cotizar del monolito. */
+  //POST /distribucion/cotizar del monolito
   @Post('cotizar')
   cotizar(
     @Body() dto: CotizarDto,
@@ -41,7 +41,7 @@ export class ApiSociosController {
     return this.apiSociosService.cotizar(dto, socioId);
   }
 
-  /** POST /distribucion/suscribir del monolito. */
+  // POST /distribucion/suscribir del monolito
   @Post('suscribir')
   suscribir(
     @Body() dto: SuscribirDto,
@@ -50,11 +50,10 @@ export class ApiSociosController {
     return this.apiSociosService.suscribir(dto, socioId);
   }
 
-  /**
-   * GET /siniestros/poliza/:numeroPoliza del monolito, con la misma ruta para
-   * no romper a los socios que ya la usan. Sin ParseUUIDPipe ni validacion
-   * del numero: el 404 lo decide Siniestros.
-   */
+  //GET /siniestros/poliza/:numeroPoliza del monolito, con la misma ruta para
+  // no romper a los socios que ya la usan. Sin ParseUUIDPipe ni validacion
+  // del numero: el 404 lo decide Siniestros.
+  //
   @Get('siniestros/poliza/:numeroPoliza')
   consultarSiniestros(
     @Param('numeroPoliza') numeroPoliza: string,
