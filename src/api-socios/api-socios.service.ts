@@ -37,22 +37,20 @@ export class ApiSociosService {
    * (buscar el socio) ya lo resolvio el ValidadorSocioGuard.
    */
   async cotizar(dto: CotizarDto, socioId: string): Promise<Cotizacion> {
-    // 1. Producto, en Catalogo.
+    // producto
     const producto = await this.catalogoClient.obtenerProducto(
       dto.idProducto,
       socioId,
     );
 
-    // 2. Cliente, en Identidad (get-or-create por documento, con KYC dentro),
-    //    detras de la cache cache-aside del ASR de escalabilidad.
+    //identidad
     const cliente = await this.cacheClientes.verificarCliente(
       dto.nombre,
       dto.documento,
       socioId,
     );
 
-    // 3. Cotizacion. sumaAseguradaMaxima se reenvia como string, sin
-    //    parseFloat: es un numeric(14,2) y el calculo lo hace Cotizacion.
+    // cotizacion
     return this.cotizacionClient.crearCotizacion(
       {
         productoId: producto.id,
@@ -65,37 +63,30 @@ export class ApiSociosService {
     );
   }
 
-  /**
-   * Paso a paso de DistribucionService.suscribirYEmitir.
-   *
-   * Segun el diagrama Suscripciones no llama a Cotizacion ni a Identidad, asi
-   * que Distribucion resuelve antes la cotizacion vigente y el documento del
-   * cliente, y se los pasa en el body.
-   */
+  //DistribucionService.suscribirYEmitir.
+
   async suscribir(dto: SuscribirDto, socioId: string): Promise<Suscripcion> {
-    // a. Mismo mensaje que el monolito.
+    // mismo mensaje que el monolito.
     if (!dto.aceptado) {
       throw new BadRequestException(
         'La cotización no fue aceptada por el cliente',
       );
     }
 
-    // b. Cotizacion vigente. Su 400 'Cotización inválida o expirada' se
-    //    propaga tal cual, igual que validarCotizacion en el monolito.
+    // cotizacion vigente
     const cotizacion = await this.cotizacionClient.validar(
       dto.idCotizacion,
       socioId,
     );
 
-    // c. Documento del cliente. En el monolito llegaba dentro de la entidad
-    //    (cotizacion.cliente); ahora la cotizacion solo trae clienteId.
+    // documento del cliente
     const cliente = await this.identidadClient.obtenerCliente(
       cotizacion.clienteId,
       socioId,
     );
 
     try {
-      // d. Una sola llamada: Suscripciones hace puntaje, pago y emision.
+      // hace una sola llamada
       const suscripcion = await this.suscripcionesClient.crear(
         {
           cotizacionId: cotizacion.id,
@@ -107,7 +98,7 @@ export class ApiSociosService {
         socioId,
       );
 
-      // e. Igual que distribucion.service.ts:94.
+      // igual que distribucion.service.ts
       await this.cotizacionClient.marcarEstado(
         cotizacion.id,
         'ACEPTADA',
@@ -116,18 +107,13 @@ export class ApiSociosService {
 
       return suscripcion;
     } catch (error) {
-      // f. Compensacion y se propaga el error ORIGINAL con su status. El
-      //    monolito lo aplanaba todo a un 400 ('Fallo en suscripcion/emision:
-      //    ...'), con lo que un pago rechazado y un body malo se veian igual.
+      // compensacion y se propaga el error orginal
       await this.cotizacionClient.compensarRechazada(cotizacion.id, socioId);
       throw error;
     }
   }
 
-  /**
-   * Reenvio de GET /siniestros/poliza/:numeroPoliza, que en el monolito era
-   * una ruta publica del modulo siniestros.
-   */
+  // Reenvio de GET /siniestros/poliza/:numeroPoliza
   async consultarSiniestros(
     numeroPoliza: string,
     socioId: string,
