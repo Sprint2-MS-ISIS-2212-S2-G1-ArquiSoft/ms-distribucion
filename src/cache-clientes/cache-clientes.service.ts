@@ -5,23 +5,6 @@ import { Cliente, IdentidadClient } from '../clients/identidad.client';
 import { MetricasService } from '../metricas/metricas.service';
 import { RedisService } from '../redis/redis.service';
 
-/**
- * ASR de escalabilidad (Ivonne). Tactica: cache cache-aside con TTL corto de
- * la verificacion del cliente contra Identidad (POST /clientes/verificacion),
- * la llamada a Identidad que hace CADA cotizacion.
- *
- *   1. busca en Redis    2. si no esta, llama a Identidad    3. guarda con TTL
- *
- * Es seguro cachearla: la verificacion es un get-or-create por documento, asi
- * que para el mismo documento Identidad devuelve siempre el mismo cliente.
- * Solo se cachean respuestas 200: un 400 de KYC o un 503 no se guardan.
- *
- * La clave es el SHA-256 del documento: el documento (dato personal) no queda
- * en claro en Redis.
- *
- * Si Redis no responde, se degrada a llamar directo a Identidad.
- * CACHE_ENABLED=false la apaga (corrida base del experimento, misma imagen).
- */
 @Injectable()
 export class CacheClientesService {
   private readonly logger = new Logger(CacheClientesService.name);
