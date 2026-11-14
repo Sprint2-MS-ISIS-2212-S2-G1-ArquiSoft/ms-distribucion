@@ -43,9 +43,14 @@ docker compose -f docker-compose.local.yml down
 
 `docker-compose.local.yml` es **solo para desarrollo**: levanta este servicio (host `3000` → contenedor `3000`), un `redis:7-alpine` (host `6379`) y **un mock por cada uno de los seis vecinos**.
 
-Los seis mocks corren el mismo servidor genérico (`mocks/server.js`) y se diferencian solo por su JSON de rutas (`mocks/<servicio>.json`), que declara método, ruta, casos condicionales e interpolación de valores de la petición. Los de **catalogo**, **identidad** y **cotizacion** implementan el contrato **real** documentado en los README de `ms-catalogo`, `ms-identidad` y `ms-cotizacion`; los de **suscripciones**, **siniestros** y **auditoria** implementan los contratos de la sección "Contratos pendientes" de abajo.
+Los seis mocks corren el mismo servidor genérico (`mocks/server.js`) y se diferencian solo por su JSON de rutas (`mocks/<servicio>.json`), que declara método, ruta, casos condicionales e interpolación de valores de la petición. Los de **catalogo**, **identidad** y **cotizacion** implementan el contrato **real** documentado en los README de `ms-catalogo`, `ms-identidad` y `ms-cotizacion`; los de **suscripciones**, **siniestros** y **auditoria** implementan el contrato **real** de `ms-suscripciones`, `ms-siniestros` y `ms-auditoria`, documentado en la sección "Contratos reales" de abajo.
 
 Cada mock loguea método, ruta y body de cada petición, así que `docker compose -f docker-compose.local.yml logs cotizacion-mock` muestra los `PATCH /cotizaciones/:id/estado` que hace Distribución.
+
+> [!NOTE]
+> Este compose levanta Distribución **sola**, contra mocks, y seguirá siendo así: es lo que se usa para probar este servicio sin depender de los otros ocho.
+>
+> El **compose integrado**, que levanta los **nueve microservicios reales** conectados entre sí (sin ningún mock) para probar el flujo completo, vive en el repositorio paraguas `solventa-infra` (`docker-compose.yml`). Allí Distribución llama a `http://identidad:3000`, `http://cotizacion:3000`, etc., en vez de a los mocks.
 
 Para probar los caminos de error:
 
@@ -231,9 +236,9 @@ De los README de los servicios ya migrados:
 | cotizacion | `POST /cotizaciones/:id/validacion` → `200`; `400 'Cotización inválida o expirada'` |
 | cotizacion | `PATCH /cotizaciones/:id/estado` `{estado}` → `200`; `400`; `404` |
 
-## Contratos pendientes
+## Contratos reales
 
-Estos tres servicios todavía no están migrados. Los contratos salen de cómo el monolito usaba sus services y **deben implementarse exactamente así**. Rutas REST sin prefijo de módulo, `POST` cuando el body lleva datos personales, y bodies y respuestas con IDs en vez de entidades completas.
+Estos tres servicios **ya están migrados**, y el contrato documentado abajo es el que implementan: está verificado contra la sección API de los README de `ms-suscripciones`, `ms-siniestros` y `ms-auditoria`, y probado end-to-end con el compose integrado de `solventa-infra`. Como el resto, no se toca desde aquí. Rutas REST sin prefijo de módulo, `POST` cuando el body lleva datos personales, y bodies y respuestas con IDs en vez de entidades completas.
 
 ### `ms-suscripciones` · `POST /suscripciones`
 
@@ -358,9 +363,142 @@ docker logs <contenedor> | grep '"metrica":"distribucion"'
 
 El andamio no trae lógica de ASRs. Están **deliberadamente ausentes**:
 
-- **validación de scopes por socio y registro de los rechazos en Auditoría** — `src/validador-socio/validador-socio.guard.ts` solo comprueba que el socio exista (`TODO: ASR de seguridad, Martín`);
-- **mTLS** — lo termina el gateway Nginx, que es el que inyecta `X-Socio-Id`;
+- ~~**validación de scopes por socio y registro de los rechazos en Auditoría**~~ → **ya implementado**, ver [ASR de seguridad](#asr-de-seguridad);
+- ~~**mTLS**~~ → **ya implementado** en el gateway Nginx de `solventa-infra`, que es el que inyecta `X-Socio-Id`;
 - **lectura de secretos de Vault** — solo queda `VAULT_ADDR` declarado en `.env.example`;
 - **caché, circuit breaker y reintentos** en los clientes HTTP. El mock del monolito los tenía con `opossum`; aquí solo queda el timeout de 5 s, que es obligatorio (regla 5). Consecuencia conocida: el `503 'Servicio Open Data no disponible'` de Cotización llega al socio como `503 'Cotización no disponible'`, porque cualquier `5xx` de un vecino se traduce a `<Servicio> no disponible`;
 - **idempotencia** de `POST /cotizar` y `POST /suscribir`;
-- **filtrado por pertenencia del socio**: nada impide todavía que un socio suscriba la cotización de otro, igual que en el monolito.
+- ~~**filtrado por pertenencia del socio**~~ → **ya implementado**: lo decide `ms-cotizacion`, el dueño del dato, y su `403` se propaga aquí. Ver [ASR de seguridad](#asr-de-seguridad).
+
+## ASR de seguridad · aislamiento y autorización por alcance (Martín)
+
+> **Escenario.** Un socio bien autenticado (certificado mTLS válido) intenta
+> leer o modificar un recurso de otro socio, o usar un endpoint fuera de su
+> alcance. El sistema responde `403`, **no devuelve datos del otro socio** y
+> registra el intento en Auditoría con socio, recurso y timestamp.
+>
+> **Medida.** p95 < 500 ms a 75 TPS.
+
+Cuatro tácticas, repartidas entre el gateway (`solventa-infra`), este servicio y
+el dueño de cada dato:
+
+| # | Táctica | Dónde |
+|---|---|---|
+| 1 | **mTLS** | `solventa-infra/gateway/nginx.conf` · `ssl_verify_client on` + `ssl_client_certificate` |
+| 2 | **Cifrado en tránsito** | `solventa-infra/gateway/nginx.conf` · `listen 443 ssl`, `ssl_protocols TLSv1.2 TLSv1.3` |
+| 3 | **Autorización por alcance (RBAC/scopes)** | aquí ↓ |
+| 4 | **Audit log** | aquí ↓ |
+
+### 3 · Autorización por alcance
+
+El alcance de cada socio vive en Redis, en su propia clave `socio:<id>:scopes`,
+como SET. Cada ruta declara el scope que exige con `@Scope`, y el guard compara
+los dos con un solo `SISMEMBER`.
+
+| Artefacto | Dónde |
+|---|---|
+| Decorador `@Scope()` | [`src/validador-socio/scope.decorator.ts:20`](src/validador-socio/scope.decorator.ts#L20) |
+| Chequeo del alcance | [`src/validador-socio/validador-socio.guard.ts:84-98`](src/validador-socio/validador-socio.guard.ts#L84) |
+| Alcance por socio (semilla) | [`src/socios/socios.seed.json`](src/socios/socios.seed.json) |
+| Siembra en `socio:<id>:scopes` | [`src/socios/socios.service.ts:51`](src/socios/socios.service.ts#L51) |
+| Consulta del scope | [`src/socios/socios.service.ts:97`](src/socios/socios.service.ts#L97) `tieneScope()` → [`src/redis/redis.service.ts:99`](src/redis/redis.service.ts#L99) `esMiembro()` (`SISMEMBER`) |
+
+Ruta → scope ([`src/api-socios/api-socios.controller.ts`](src/api-socios/api-socios.controller.ts)):
+
+| Ruta | Scope | Línea |
+|---|---|---|
+| `POST /cotizar` | `cotizar` | [42](src/api-socios/api-socios.controller.ts#L42) |
+| `POST /suscribir` | `suscribir` | [52](src/api-socios/api-socios.controller.ts#L52) |
+| `GET /cotizaciones/:id` **(nueva)** | `cotizaciones:leer` | [69](src/api-socios/api-socios.controller.ts#L69) |
+| `GET /siniestros/poliza/:numeroPoliza` | `siniestros:leer` | [82](src/api-socios/api-socios.controller.ts#L82) |
+
+Socios semilla y su alcance:
+
+| Socio | Id | Alcance | Para qué |
+|---|---|---|---|
+| A · Banco Aliado | `…174001` | los cuatro scopes | flujo feliz |
+| B · Aseguratec Partners | `…174002` | `cotizar`, `suscribir`, `cotizaciones:leer` | **sin** `siniestros:leer` → prueba "endpoint fuera de alcance" |
+| C · Comparador Vitrina | `…174003` | solo `cotizaciones:leer` | solo lectura → `POST /cotizar` da `403` |
+| 50 × Socio Carga NN | `00000000-…-0000000000NN` | los cuatro scopes | ASR de escalabilidad (no se toca) |
+
+El guard es **fail-closed**, al contrario del rate limiter, que es fail-open por
+diseño: en autorización, ante la duda se niega. Una ruta protegida que olvide su
+`@Scope` se rechaza en vez de quedar abierta
+([`validador-socio.guard.ts:87`](src/validador-socio/validador-socio.guard.ts#L87)).
+
+### 4 · Audit log
+
+| Artefacto | Dónde |
+|---|---|
+| Filtro global | [`src/validador-socio/auditoria.filter.ts:39`](src/validador-socio/auditoria.filter.ts#L39) `AuditoriaFilter` |
+| Registro `fire-and-forget` | [`src/validador-socio/auditoria.filter.ts:62`](src/validador-socio/auditoria.filter.ts#L62) `registrarRechazo()` |
+| Registrado como `APP_FILTER` | [`src/api-socios/api-socios.module.ts:45`](src/api-socios/api-socios.module.ts#L45) |
+| Cliente HTTP | [`src/clients/auditoria.client.ts`](src/clients/auditoria.client.ts) → `POST /eventos` |
+
+Está en **un filtro global y no repartido por los métodos del controller**: dos
+de los cuatro orígenes del `403` los decide otro servicio y llegan aquí como
+excepción propagada, y un registro por método se desincroniza en cuanto alguien
+agrega una ruta. Cubre los cuatro casos:
+
+| Origen del `403` | Quién lo decide |
+|---|---|
+| socio inexistente | `ValidadorSocioGuard` |
+| fuera del alcance otorgado | `ValidadorSocioGuard` (`@Scope`) |
+| leer el recurso de otro socio | `ms-cotizacion`, propagado |
+| suscribir una cotización ajena | `ms-cotizacion`, propagado |
+
+El registro **no se espera** (`void … .catch()`). Es un requisito de la medida,
+no una optimización: `llamar()` tiene un timeout de 5 s
+([`llamada-http.ts:11`](src/clients/llamada-http.ts#L11)), así que esperar la
+respuesta de Auditoría agregaría hasta 5 s a cada `403` y convertiría una caída
+de Auditoría en un `503` que taparía el `403` real.
+
+### Aislamiento por recurso: no se decide aquí
+
+Distribución no almacena cotizaciones, así que no puede comprobar la pertenencia
+por sí misma: propaga `X-Socio-Id` y respeta la decisión del dueño del dato.
+`ms-cotizacion` compara `socioDistribucionId` con el header y responde `403 'No
+autorizado para este recurso'`; `llamar()` propaga ese status y ese mensaje tal
+cual ([`llamada-http.ts:85-91`](src/clients/llamada-http.ts#L85)), sin cuerpo de
+la cotización ajena.
+
+Esto es **defensa en profundidad**: un gateway o un Distribución comprometidos
+no bastan para leer los datos de otro socio.
+
+### Probarlo
+
+El socio ya no entra por `localhost:3000` (Distribución dejó de publicar puerto,
+justamente para que no se pueda saltar el mTLS). Se entra por el gateway, con
+certificado:
+
+```bash
+cd ../solventa-infra
+bash gateway/certs/gen.sh          # genera la PKI (no se versiona)
+docker compose up -d --build
+
+C="curl -s --cacert gateway/certs/ca.crt"
+A=gateway/certs/socio-a            # alcance completo
+B=gateway/certs/socio-b            # sin siniestros:leer
+CC=gateway/certs/socio-c           # solo lectura
+
+# fuera de alcance: socio B no tiene siniestros:leer -> 403
+$C --cert $B.crt --key $B.key https://localhost:8443/siniestros/poliza/POL-001
+
+# fuera de alcance: socio C es de solo lectura -> 403
+$C --cert $CC.crt --key $CC.key -X POST https://localhost:8443/cotizar \
+   -H 'Content-Type: application/json' \
+   -d '{"nombre":"Ana Gomez","documento":"1020304050",
+        "idProducto":"123e4567-e89b-12d3-a456-426614174000","aceptaOpenData":true}'
+
+# recurso ajeno: la cotizacion 174022 es del socio B -> 403 sin datos
+$C --cert $A.crt --key $A.key \
+   https://localhost:8443/cotizaciones/123e4567-e89b-12d3-a456-426614174022
+
+# el X-Socio-Id del cliente se IGNORA: el gateway lo sobrescribe con el CN
+$C --cert $A.crt --key $A.key -H 'X-Socio-Id: 123e4567-e89b-12d3-a456-426614174002' \
+   https://localhost:8443/cotizaciones/123e4567-e89b-12d3-a456-426614174022
+
+# los rechazos quedan en Auditoria
+docker compose exec -T distribucion \
+  wget -qO- 'http://auditoria:3000/eventos?resultado=RECHAZADO'
+```

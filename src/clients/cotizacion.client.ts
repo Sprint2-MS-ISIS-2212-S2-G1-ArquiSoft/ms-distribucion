@@ -69,6 +69,25 @@ export class CotizacionClient {
   }
 
   /**
+   * GET /cotizaciones/:id.
+   *
+   * ASR de seguridad (Martin): Cotizacion compara su socioDistribucionId con
+   * el X-Socio-Id que va en la cabecera y responde 403 'No autorizado para
+   * este recurso' si la cotizacion es de otro socio. llamar() propaga ese 403
+   * con su status y su mensaje, sin cuerpo de la cotizacion ajena.
+   */
+  async obtener(cotizacionId: string, socioId: string): Promise<Cotizacion> {
+    return llamar<Cotizacion>({
+      servicio: 'Cotización',
+      baseUrl: this.baseUrl,
+      metodo: 'GET',
+      ruta: `/cotizaciones/${cotizacionId}`,
+      socioId,
+      logger: this.logger,
+    });
+  }
+
+  /**
    * POST /cotizaciones/:id/validacion. Devuelve la cotizacion si esta vigente
    * (PENDIENTE y sin vencer) y 400 'Cotización inválida o expirada' si no.
    * Tiene efecto de escritura heredado del monolito: si vencio estando

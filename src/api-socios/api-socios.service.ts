@@ -113,6 +113,20 @@ export class ApiSociosService {
     }
   }
 
+  /**
+   * Reenvio de GET /cotizaciones/:id.
+   *
+   * ASR de seguridad (Martin): Distribucion no guarda cotizaciones, asi que no
+   * puede comprobar la pertenencia por si misma; propaga el socio y respeta la
+   * decision del dueno del dato (404 si no existe, 403 si es de otro socio).
+   */
+  async consultarCotizacion(
+    cotizacionId: string,
+    socioId: string,
+  ): Promise<Cotizacion> {
+    return this.cotizacionClient.obtener(cotizacionId, socioId);
+  }
+
   // Reenvio de GET /siniestros/poliza/:numeroPoliza
   async consultarSiniestros(
     numeroPoliza: string,

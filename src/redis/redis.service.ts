@@ -73,6 +73,34 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Reemplaza por completo un SET de Redis (DEL + SADD en un pipeline).
+   *
+   * ASR de seguridad (Martin): se usa para sembrar socio:<id>:scopes. Es
+   * reemplazo y no SADD a secas para que, al cambiar el alcance de un socio en
+   * socios.seed.json y reiniciar, los scopes retirados desaparezcan de verdad
+   * en vez de quedarse pegados en el SET anterior.
+   */
+  async reemplazarConjunto(clave: string, miembros: string[]): Promise<void> {
+    const pipeline = this.cliente.pipeline().del(clave);
+    if (miembros.length > 0) {
+      pipeline.sadd(clave, ...miembros);
+    }
+    await pipeline.exec();
+  }
+
+  /**
+   * SISMEMBER: un solo comando O(1).
+   *
+   * ASR de seguridad (Martin): es el chequeo de alcance que corre en CADA
+   * peticion del socio, asi que tiene que costar lo minimo. Por eso los scopes
+   * son un SET y no un JSON que habria que traer completo y parsear: la medida
+   * del ASR es p95 < 500 ms a 75 TPS.
+   */
+  async esMiembro(clave: string, miembro: string): Promise<boolean> {
+    return (await this.cliente.sismember(clave, miembro)) === 1;
+  }
+
+  /**
    * Consume un token del bucket del socio con el script Lua atomico.
    * tps/rafaga son los de entorno; si existe el hash cuota:<socioId> con
    * campos tps/rafaga, el script usa esos (cuota propia del socio).

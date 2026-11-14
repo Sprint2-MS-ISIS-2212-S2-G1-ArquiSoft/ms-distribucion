@@ -18,9 +18,10 @@ export interface EventoAuditoria {
  * auditoria: este contrato es nuevo y sale del diagrama, donde Distribucion
  * registra en Auditoria los rechazos del validador de socio.
  *
- * TODO: ASR de seguridad (Martin). Este cliente esta escrito pero NADIE lo
- * invoca todavia: el registro de los rechazos 401/403 forma parte de ese ASR
- * y se agrega en su propia rama.
+ * ASR de seguridad (Martin) · tactica de audit log. Quien invoca este cliente
+ * es AuditoriaFilter (src/validador-socio/auditoria.filter.ts), el filtro
+ * global que registra todo 403 de este servicio. La llamada se hace
+ * fire-and-forget: ver el comentario del filtro.
  */
 @Injectable()
 export class AuditoriaClient {

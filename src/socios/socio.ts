@@ -14,3 +14,24 @@ export interface Socio {
   nombreEmpresa: string;
   sectorIndustria: string;
 }
+
+/**
+ * Socio tal como viene en socios.seed.json: los mismos campos mas el alcance
+ * otorgado.
+ *
+ * ASR de seguridad (Martin): los scopes no se guardan dentro del JSON de
+ * socio:<id>, sino en su propia clave socio:<id>:scopes como SET de Redis
+ * (ver SociosService). Asi el chequeo de alcance de cada peticion es un solo
+ * SISMEMBER O(1) y no obliga a traer y parsear el socio completo.
+ */
+export interface SocioSemilla extends Socio {
+  scopes: string[];
+}
+
+/** Scopes que reconoce la API de socios, uno por ruta. */
+export const SCOPES = [
+  'cotizar',
+  'suscribir',
+  'cotizaciones:leer',
+  'siniestros:leer',
+] as const;
