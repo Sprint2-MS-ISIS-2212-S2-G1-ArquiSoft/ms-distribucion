@@ -16,7 +16,7 @@ services:
       REDIS_URL: redis://redis:6379
       # Vault no esta integrado todavia: es del ASR de seguridad.
       VAULT_ADDR: http://vault:8200
-      IDENTIDAD_URL: http://identidad-mock:3000
+      IDENTIDAD_URL: ${IDENTIDAD_URL:-http://identidad-mock:3000}
       SUSCRIPCIONES_URL: http://suscripciones-mock:3000
       SINIESTROS_URL: http://siniestros-mock:3000
       CATALOGO_URL: http://catalogo-mock:3000
